@@ -18,10 +18,13 @@ Fuzzing at ca. 60k exec/s. I can imagine you can scale it even more with 25% dro
 
 Dont forget to:
 
+```
 sudo echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+```
 
 Thats how proc maps looked on my system (see snapshot.c)
 
+```
 cat /proc/30918/maps | grep rw
 0065f000-00664000 rw-p 0005f000 00:34 7868250                            /home/mk/fuzzer/v6
 00664000-00685000 rw-p 00000000 00:00 0                                  [heap]
@@ -31,6 +34,7 @@ cat /proc/30918/maps | grep rw
 7ffff7ffd000-7ffff7ffe000 rw-p 00026000 fd:01 13908788                   /lib/x86_64-linux-gnu/ld-2.23.so
 7ffff7ffe000-7ffff7fff000 rw-p 00000000 00:00 0 
 7ffffffde000-7ffffffff000 rw-p 00000000 00:00 0                          [stack]
+```
 
 Hopefully, rest you can figure out.
 
