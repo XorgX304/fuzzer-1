@@ -2,6 +2,7 @@
 Ptrace fuzzer experiments based on https://h0mbre.github.io/Fuzzing-Like-A-Caveman-4/#
 
 - Modified it to snapshot also Heap (needed for a more real target than dummy one)
+- Modified it to snapshot and restore FP (Floating Point) registers along General Purpose registers
 - Fixed small bug with percentage showing of Coverage
 - debuged, debuged, debuged till it work with real target (Oniguruma library :))
 
