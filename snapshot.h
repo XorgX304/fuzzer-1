@@ -6,6 +6,6 @@ struct SNAPSHOT_MEMORY {
     long long unsigned rdwr_length[8];
 };
 
-unsigned char* create_snapshot(pid_t child_pid);
+unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapshot_buf_offset[], long rdwr_len[]);
 
-void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid);
+void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid,  long maps_offset[], long snapshot_buf_offset[], long rdwr_len[]);

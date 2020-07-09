@@ -9,43 +9,16 @@
 #include <fcntl.h>
 #include <errno.h>
 
-unsigned char* create_snapshot(pid_t child_pid) {
+unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapshot_buf_offset[], long rdwr_len[]) {
  
-    struct SNAPSHOT_MEMORY read_memory = {
-        {
-            // maps_offset
-            0x0065f000,
-            0x7ffff7dd1000,
-            0x7ffff7dd3000,
-            0x7ffff7fc5000,
-            0x7ffff7ffd000,
-            0x7ffff7ffe000,
-            0x7ffffffde000,
-            0x664000
-        },
-        {
-            // snapshot_buf_offset
-            0x0,
-            0xFFF,
-            0x2FFF,
-            0x6FFF,
-            0x8FFF,
-            0x9FFF,
-            0xAFFF,
-            0x2bfff
-        },
-        {
-            // rdwr length
-            0x1000,
-            0x2000,
-            0x4000,
-            0x2000,
-            0x1000,
-            0x1000,
-            0x21000,
-            0x21000
-        }
-    };  
+    struct SNAPSHOT_MEMORY read_memory;
+
+    memcpy(read_memory.maps_offset,maps_offset,8*sizeof(long));
+    memcpy(read_memory.snapshot_buf_offset,snapshot_buf_offset,8*sizeof(long));
+    memcpy(read_memory.rdwr_length,rdwr_len,8*sizeof(long));
+
+
+    printf("%lx %lx %lx",read_memory.maps_offset[4],read_memory.snapshot_buf_offset[4],read_memory.rdwr_length[4]);
  
     unsigned char* snapshot_buf = (unsigned char*)malloc(0xff000);
  
@@ -90,7 +63,7 @@ unsigned char* create_snapshot(pid_t child_pid) {
     return snapshot_buf;
 }
 
-void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid) {
+void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_offset[], long snapshot_buf_offset[],long rdwr_len[]) {
  
     ssize_t bytes_written = 0;
     // we're writing *from* 7 different offsets within snapshot_buf
@@ -102,42 +75,31 @@ void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid) {
     // struct that is 'remote' (ie, the child process where we'll overwrite
     // all of the non-heap writable memory sections that we parsed from 
     // proc/$pid/memory)
-    local[0].iov_base = snapshot_buf;
-    local[0].iov_len = 0x1000;
-    local[1].iov_base = (unsigned char*)(snapshot_buf + 0xFFF);
-    local[1].iov_len = 0x2000;
-    local[2].iov_base = (unsigned char*)(snapshot_buf + 0x2FFF);
-    local[2].iov_len = 0x4000;
-    local[3].iov_base = (unsigned char*)(snapshot_buf + 0x6FFF);
-    local[3].iov_len = 0x2000;
-    local[4].iov_base = (unsigned char*)(snapshot_buf + 0x8FFF);
-    local[4].iov_len = 0x1000;
-    local[5].iov_base = (unsigned char*)(snapshot_buf + 0x9FFF);
-    local[5].iov_len = 0x1000;
-    local[6].iov_base = (unsigned char*)(snapshot_buf + 0xaFFF);
-    local[6].iov_len = 0x21000;
-    local[7].iov_base = (unsigned char*)(snapshot_buf + 0x2bFFF);
-    local[7].iov_len = 0x21000;
- 
+    
+    for(int i=0;i<8;i++)
+    { 
+      if(i==0)
+      {
+        local[i].iov_base = maps_offset[i];
+        local[i].iov_len = rdwr_len[i];
+      }
+      local[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
+      local[i].iov_len = rdwr_len[i];
+    }
+
     // just hardcoding the base addresses that are writable memory
     // that we gleaned from /proc/pid/maps and their lengths
-    remote[0].iov_base = (void*)0x0065f000;
-    remote[0].iov_len = 0x1000;
-    remote[1].iov_base = (void*)0x7ffff7dd1000;
-    remote[1].iov_len = 0x2000;
-    remote[2].iov_base = (void*)0x7ffff7dd3000;
-    remote[2].iov_len = 0x4000;
-    remote[3].iov_base = (void*)0x7ffff7fc5000;
-    remote[3].iov_len = 0x2000;
-    remote[4].iov_base = (void*)0x7ffff7ffd000;
-    remote[4].iov_len = 0x1000;
-    remote[5].iov_base = (void*)0x7ffff7ffe000;
-    remote[5].iov_len = 0x1000;
-    remote[6].iov_base = (void*)0x7ffffffde000;
-    remote[6].iov_len = 0x21000;
-    remote[7].iov_base = (void*)0x664000;
-    remote[7].iov_len = 0x21000;
-
+    for(int i=0;i<8;i++)
+    {
+      if(i==0)
+      {
+        remote[i].iov_base = maps_offset[i];
+        remote[i].iov_len = rdwr_len[i];
+      }
+      remote[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
+      remote[i].iov_len = rdwr_len[i];
+    }
+   
  
     bytes_written = process_vm_writev(child_pid, local, 8, remote, 8, 0);
     //printf("dragonfly> %ld bytes written\n", bytes_written);

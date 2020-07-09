@@ -20,6 +20,7 @@
 
 #include "snapshot.h"
 #include "ptrace_helpers.h"
+#include "pmparser.h"
 
 // globals /////////////////////////////////////// 
 char* debugee = "v6";                           //
@@ -32,8 +33,8 @@ unsigned char *corpus[12];                      //
 //////////////////////////////////////////////////
 
 // breakpoints ///////////////////////////////////
-long long unsigned start_addr =0x400afa;        //
-long long unsigned end_addr = 0x400b64;         // 
+long long unsigned start_addr =0x400ae4;        //
+long long unsigned end_addr = 0x400b7e;         // 
                                                 //
 //////////////////////////////////////////////////
 
@@ -235,6 +236,8 @@ unsigned char* get_fuzzcase() {
         for (int i = 0; i < (int)(prototype_count); i++) {
             input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
         }
+        memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+
         return input_mutated;
     }
 
@@ -253,6 +256,8 @@ unsigned char* get_fuzzcase() {
             for (int i = 0; i < (int)(prototype_count); i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
+             memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+
 
             return input_mutated;
         }
@@ -264,6 +269,8 @@ unsigned char* get_fuzzcase() {
             for (int i = 0; i < (int)(prototype_count); i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
+             memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+
 
             return input_mutated;
         }
@@ -318,7 +325,7 @@ void print_stats(int result, int crashes, float million_iterations) {
     fflush(stdout);
 }
 
-void fuzzer(pid_t child_pid, unsigned char* snapshot_buf, struct user_regs_struct snapshot_registers, struct user_fpregs_struct snapshot_fp_registers) {
+void fuzzer(pid_t child_pid, unsigned char* snapshot_buf,  long  maps_offset[], long snapshot_buf_offset[], long rdwr_len[], struct user_regs_struct snapshot_registers, struct user_fpregs_struct snapshot_fp_registers) {
 
     // fc/s
     int iterations = 0;
@@ -370,7 +377,7 @@ void fuzzer(pid_t child_pid, unsigned char* snapshot_buf, struct user_regs_struc
         }
 
         // restore writable memory from /proc/$pid/maps to its state at Start
-        restore_snapshot(snapshot_buf, child_pid);
+        restore_snapshot(snapshot_buf, child_pid, maps_offset, snapshot_buf_offset, rdwr_len);
 
         // restore registers to their state at Start
         set_regs(child_pid, snapshot_registers);
@@ -418,10 +425,12 @@ void execute_debugee(char* debugee) {
     }
 
     // dup both stdout and stderr and send them to /dev/null
+    /*
     int fd = open("/dev/null", O_WRONLY);
     dup2(fd, 1);
     dup2(fd, 2);
     close(fd);
+   */
     // exec our debugee program, NULL terminated to avoid Sentinel compilation
     // warning. this replaces the fork() clone of the parent with the 
     // debugee process 
@@ -496,7 +505,34 @@ void execute_debugger(pid_t child_pid) {
 
     // take a snapshot of the writable memory sections in /proc/$pid/maps
     printf("\033[1;35mdragonfly>\033[0m collecting snapshot data\n");
-    unsigned char* snapshot_buf = create_snapshot(child_pid);
+    procmaps_iterator* maps = pmparser_parse(child_pid);
+    procmaps_struct* maps_tmp=NULL;
+    int i=0; 
+    long maps_offset[8];
+    long snapshot_buf_offset[8];
+    long rdwr_len[8];
+    while( (maps_tmp = pmparser_next(maps)) != NULL){
+        if(maps_tmp->is_r && maps_tmp->is_w)
+        {
+          
+          maps_offset[i]=(long) maps_tmp->addr_start;
+          if(i==0)
+            snapshot_buf_offset[i]=0;
+          else
+            snapshot_buf_offset[i]=snapshot_buf_offset[i-1]+maps_tmp->length;
+          
+          rdwr_len[i]=maps_tmp->length;
+          i=i+1;
+          
+          
+        } 
+    }
+    
+
+    pmparser_free(maps);
+    
+   
+    unsigned char* snapshot_buf = create_snapshot(child_pid, maps_offset, snapshot_buf_offset, rdwr_len);
 
     // take a snapshot of the registers in this state
     struct user_regs_struct snapshot_registers = get_regs(child_pid, snapshot_registers);
@@ -509,7 +545,7 @@ void execute_debugger(pid_t child_pid) {
     getchar();
 
     // system("clear");
-    fuzzer(child_pid, snapshot_buf, snapshot_registers, snapshot_fp_registers);
+    fuzzer(child_pid, snapshot_buf, maps_offset, snapshot_buf_offset, rdwr_len, snapshot_registers, snapshot_fp_registers);
 }
 
 int main(int argc, char* argv[]) {
@@ -518,7 +554,7 @@ int main(int argc, char* argv[]) {
     // continuous fuzzing loop that is a while true
 
     long long loc = strtoll(argv[1],NULL,0);
-    fuzz_location = (void*)loc-16; // in my case needed to shift due to vars 
+    fuzz_location = (void*)loc+16; // in my case needed to shift due to vars 
     printf("fuzz_location:%p\n",fuzz_location);
 
     struct sigaction sig_int_handler;
