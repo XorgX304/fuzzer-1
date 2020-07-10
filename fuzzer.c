@@ -255,7 +255,7 @@ unsigned char* get_fuzzcase() {
         memcpy(input_mutated, input_prototype, prototype_count);
 
         // mutate 159 bytes, while keeping the prototype intact
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < rand() % 4; i++) {
             input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
         }
         //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
@@ -275,7 +275,7 @@ unsigned char* get_fuzzcase() {
             memcpy(input_mutated, input_prototype, prototype_count);
 
             // mutate 159 bytes, while keeping the prototype intact
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < rand() % 4; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
             //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
@@ -288,7 +288,7 @@ unsigned char* get_fuzzcase() {
             int corpus_pick = rand() % corpus_count;
             memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
 
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < rand() % 4; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
             //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
