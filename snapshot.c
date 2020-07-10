@@ -1,15 +1,15 @@
 /*
- @Author    : h0mbre, marcinguy
- @date      : July 2020
+   @Author    : h0mbre, marcinguy
+   @date      : July 2020
 
-Permission to use, copy, modify, distribute, and sell this software and its
-documentation for any purpose is hereby granted without fee, provided that
-the above copyright notice appear in all copies and that both that
-copyright notice and this permission notice appear in supporting
-documentation.  No representations are made about the suitability of this
-software for any purpose.  It is provided "as is" without express or
-implied warranty.
-*/
+   Permission to use, copy, modify, distribute, and sell this software and its
+   documentation for any purpose is hereby granted without fee, provided that
+   the above copyright notice appear in all copies and that both that
+   copyright notice and this permission notice appear in supporting
+   documentation.  No representations are made about the suitability of this
+   software for any purpose.  It is provided "as is" without express or
+   implied warranty.
+ */
 
 
 #define _GNU_SOURCE
@@ -25,7 +25,7 @@ implied warranty.
 #include <string.h>
 
 unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapshot_buf_offset[], long rdwr_len[], int count) {
- 
+
     struct SNAPSHOT_MEMORY read_memory;
 
     memcpy(read_memory.maps_offset,maps_offset,count*sizeof(long));
@@ -33,13 +33,13 @@ unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapsho
     memcpy(read_memory.rdwr_length,rdwr_len,count*sizeof(long));
 
 
- 
+
     unsigned char* snapshot_buf = (unsigned char*)malloc(0xffff0);
- 
+
     // this is just /proc/$pid/mem
     char proc_mem[0x20] = { 0 };
     sprintf(proc_mem, "/proc/%d/mem", child_pid);
- 
+
     // open /proc/$pid/mem for reading
     // hardcoded offsets are from typical /proc/$pid/maps at main()
     int mem_fd = open(proc_mem, O_RDONLY);
@@ -48,7 +48,7 @@ unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapsho
         perror("open");
         exit(errno);
     }
- 
+
     // this loop will:
     //  -- go to an offset within /proc/$pid/mem via lseek()
     //  -- read x-pages of memory from that offset into the snapshot buffer
@@ -62,59 +62,59 @@ unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapsho
             perror("lseek");
             exit(errno);
         }
- 
+
         bytes_read = read(mem_fd,
-            (unsigned char*)(snapshot_buf + read_memory.snapshot_buf_offset[i]),
-            read_memory.rdwr_length[i]);
+                (unsigned char*)(snapshot_buf + read_memory.snapshot_buf_offset[i]),
+                read_memory.rdwr_length[i]);
         if (bytes_read == -1) {
             fprintf(stderr, "dragonfly> Error (%d) during ", errno);
             perror("read");
             exit(errno);
         }
     }
- 
+
     close(mem_fd);
     return snapshot_buf;
 }
 
 void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_offset[], long snapshot_buf_offset[],long rdwr_len[], int count) {
- 
+
     ssize_t bytes_written = 0;
     // we're writing *from* 7 different offsets within snapshot_buf
     struct iovec local[count];
     // we're writing *to* 7 separate sections of writable memory here
     struct iovec remote[count];
- 
+
     // this struct is the local buffer we want to write from into the 
     // struct that is 'remote' (ie, the child process where we'll overwrite
     // all of the non-heap writable memory sections that we parsed from 
     // proc/$pid/memory)
-    
+
     for(int i=0;i<count;i++)
     { 
-      if(i==0)
-      {
-        local[i].iov_base = (unsigned char*) maps_offset[i];
+        if(i==0)
+        {
+            local[i].iov_base = (unsigned char*) maps_offset[i];
+            local[i].iov_len = rdwr_len[i];
+        }
+        local[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
         local[i].iov_len = rdwr_len[i];
-      }
-      local[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
-      local[i].iov_len = rdwr_len[i];
     }
 
     // just hardcoding the base addresses that are writable memory
     // that we gleaned from /proc/pid/maps and their lengths
     for(int i=0;i<count;i++)
     {
-      if(i==0)
-      {
-        remote[i].iov_base = (unsigned char*)maps_offset[i];
+        if(i==0)
+        {
+            remote[i].iov_base = (unsigned char*)maps_offset[i];
+            remote[i].iov_len = rdwr_len[i];
+        }
+        remote[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
         remote[i].iov_len = rdwr_len[i];
-      }
-      remote[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
-      remote[i].iov_len = rdwr_len[i];
     }
-   
- 
+
+
     bytes_written = process_vm_writev(child_pid, local, count, remote, count, 0);
     //printf("dragonfly> %ld bytes written\n", bytes_written);
 }

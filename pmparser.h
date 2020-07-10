@@ -1,14 +1,14 @@
 /*
- @Author	: ouadimjamal@gmail.com
- @date		: December 2015
+   @Author	: ouadimjamal@gmail.com
+   @date		: December 2015
 
-Permission to use, copy, modify, distribute, and sell this software and its
-documentation for any purpose is hereby granted without fee, provided that
-the above copyright notice appear in all copies and that both that
-copyright notice and this permission notice appear in supporting
-documentation.  No representations are made about the suitability of this
-software for any purpose.  It is provided "as is" without express or
-implied warranty.
+   Permission to use, copy, modify, distribute, and sell this software and its
+   documentation for any purpose is hereby granted without fee, provided that
+   the above copyright notice appear in all copies and that both that
+   copyright notice and this permission notice appear in supporting
+   documentation.  No representations are made about the suitability of this
+   software for any purpose.  It is provided "as is" without express or
+   implied warranty.
 
  */
 
@@ -31,23 +31,23 @@ implied warranty.
  * @desc hold all the information about an area in the process's  VM
  */
 typedef struct procmaps_struct{
-	void* addr_start; 	//< start address of the area
-	void* addr_end; 	//< end address
-	unsigned long length; //< size of the range
+    void* addr_start; 	//< start address of the area
+    void* addr_end; 	//< end address
+    unsigned long length; //< size of the range
 
-	char perm[5];		//< permissions rwxp
-	short is_r;			//< rewrote of perm with short flags
-	short is_w;
-	short is_x;
-	short is_p;
+    char perm[5];		//< permissions rwxp
+    short is_r;			//< rewrote of perm with short flags
+    short is_w;
+    short is_x;
+    short is_p;
 
-	long offset;	//< offset
-	char dev[12];	//< dev major:minor
-	int inode;		//< inode of the file that backs the area
+    long offset;	//< offset
+    char dev[12];	//< dev major:minor
+    int inode;		//< inode of the file that backs the area
 
-	char pathname[600];		//< the path of the file that backs the area
-	//chained list
-	struct procmaps_struct* next;		//<handler of the chinaed list
+    char pathname[600];		//< the path of the file that backs the area
+    //chained list
+    struct procmaps_struct* next;		//<handler of the chinaed list
 } procmaps_struct;
 
 /**
@@ -55,8 +55,8 @@ typedef struct procmaps_struct{
  * @desc holds iterating information
  */
 typedef struct procmaps_iterator{
-	procmaps_struct* head;
-	procmaps_struct* current;
+    procmaps_struct* head;
+    procmaps_struct* current;
 } procmaps_iterator;
 /**
  * pmparser_parse
