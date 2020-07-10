@@ -41,3 +41,11 @@ Hopefully, rest you can figure out.
 
 
 ![Fuzzer](dragonfly-60k_sec.png)
+
+After moving Corpus to shared memory
+
+
+![Fuzzer](dragonfly-120k_sec.png)
+
+![Fuzzer](dragonfly-80k_sec.png)
+
