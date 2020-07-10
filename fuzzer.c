@@ -17,6 +17,13 @@
 #include <time.h>
 #include <sys/uio.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <semaphore.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #include "snapshot.h"
 #include "ptrace_helpers.h"
@@ -27,9 +34,14 @@ char* debugee = "v6";                           //
 size_t prototype_count = 12;                    //
 unsigned char input_prototype[12];              //
 unsigned char input_mutated[12];                //
-void* fuzz_location = (void*)0x0;               //
+void* fuzz_location = (void*)0x7fffffffd960;               //
 int corpus_count = 0;                           //
-unsigned char *corpus[12];                      //       
+struct memory
+{
+    char data[100][12];
+};
+struct memory *dataptr;
+
 //////////////////////////////////////////////////
 
 // breakpoints ///////////////////////////////////
@@ -54,129 +66,128 @@ void set_dynamic_breakpoints(pid_t child_pid) {
     // these are the breakpoints that inform our code coverage
     vuln.bp_count = 123;
     vuln.bp_addresses[0]=0x000000000040da60;
-    vuln.bp_addresses[1]=0x000000000040d780;
-    vuln.bp_addresses[2]=0x000000000040fb50;
-    vuln.bp_addresses[3]=0x000000000040fb10;
-    vuln.bp_addresses[4]=0x000000000040e510;
-    vuln.bp_addresses[5]=0x000000000040f6f0;
-    vuln.bp_addresses[6]=0x000000000040f6e0;
-    vuln.bp_addresses[7]=0x000000000040f700;
-    vuln.bp_addresses[8]=0x000000000040f380;
-    vuln.bp_addresses[9]=0x000000000040f270;
-    vuln.bp_addresses[10]=0x000000000040f320;
-    vuln.bp_addresses[11]=0x000000000040f660;
-    vuln.bp_addresses[12]=0x000000000040f470;
-    vuln.bp_addresses[13]=0x000000000040efa0;
-    vuln.bp_addresses[14]=0x000000000040f260;
-    vuln.bp_addresses[15]=0x000000000040f070;
-    vuln.bp_addresses[16]=0x000000000040efc0;
-    vuln.bp_addresses[17]=0x000000000040f000;
-    vuln.bp_addresses[18]=0x000000000040ef50;
-    vuln.bp_addresses[19]=0x000000000040f640;
-    vuln.bp_addresses[20]=0x000000000040f750;
-    vuln.bp_addresses[21]=0x000000000040f710;
-    vuln.bp_addresses[22]=0x000000000040f880;
-    vuln.bp_addresses[23]=0x000000000040f840;
-    vuln.bp_addresses[24]=0x000000000040f9d0;
-    vuln.bp_addresses[25]=0x000000000040f8d0;
-    vuln.bp_addresses[26]=0x000000000040f850;
-    vuln.bp_addresses[27]=0x000000000040f970;
-    vuln.bp_addresses[28]=0x000000000040f7d0;
-    vuln.bp_addresses[29]=0x000000000040f770;
-    vuln.bp_addresses[30]=0x000000000040fa70;
-    vuln.bp_addresses[31]=0x000000000040f630;
-    vuln.bp_addresses[32]=0x000000000040f250;
-    vuln.bp_addresses[33]=0x000000000040efb0;
-    vuln.bp_addresses[34]=0x000000000040f6c0;
-    vuln.bp_addresses[35]=0x000000000040f6a0;
-    vuln.bp_addresses[36]=0x000000000040f6d0;
-    vuln.bp_addresses[37]=0x000000000040f680;
-    vuln.bp_addresses[38]=0x000000000040f690;
-    vuln.bp_addresses[39]=0x000000000040f0e0;
-    vuln.bp_addresses[40]=0x000000000040f090;
-    vuln.bp_addresses[41]=0x000000000040f1f0;
-    vuln.bp_addresses[42]=0x000000000040f130;
-    vuln.bp_addresses[43]=0x000000000040f180;
-    vuln.bp_addresses[44]=0x00000000004116f0;
-    vuln.bp_addresses[45]=0x0000000000411410;
-    vuln.bp_addresses[46]=0x00000000004118c0;
-    vuln.bp_addresses[47]=0x00000000004113a0;
-    vuln.bp_addresses[48]=0x00000000004115c0;
-    vuln.bp_addresses[49]=0x00000000004114b0;
-    vuln.bp_addresses[50]=0x0000000000411460;
-    vuln.bp_addresses[51]=0x000000000040f9e0;
-    vuln.bp_addresses[52]=0x000000000040da90;
-    vuln.bp_addresses[53]=0x0000000000410690;
-    vuln.bp_addresses[54]=0x00000000004106c0;
-    vuln.bp_addresses[55]=0x00000000004030a0;
-    vuln.bp_addresses[56]=0x000000000040d870;
-    vuln.bp_addresses[57]=0x000000000040d7d0;
-    vuln.bp_addresses[58]=0x000000000040d760;
-    vuln.bp_addresses[59]=0x0000000000402f20;
-    vuln.bp_addresses[60]=0x000000000040da40;
-    vuln.bp_addresses[61]=0x000000000040ef60;
-    vuln.bp_addresses[62]=0x000000000040dbb0;
-    vuln.bp_addresses[63]=0x000000000040db40;
-    vuln.bp_addresses[64]=0x000000000040dad0;
-    vuln.bp_addresses[65]=0x0000000000403060;
-    vuln.bp_addresses[66]=0x00000000004031f0;
-    vuln.bp_addresses[67]=0x0000000000403160;
-    vuln.bp_addresses[68]=0x000000000040ee90;
-    vuln.bp_addresses[69]=0x000000000040ee30;
-    vuln.bp_addresses[70]=0x0000000000404660;
-    vuln.bp_addresses[71]=0x00000000004032e0;
-    vuln.bp_addresses[72]=0x00000000004041b0;
-    vuln.bp_addresses[73]=0x0000000000404210;
-    vuln.bp_addresses[74]=0x0000000000404240;
-    vuln.bp_addresses[75]=0x0000000000404270;
-    vuln.bp_addresses[76]=0x0000000000404180;
-    vuln.bp_addresses[77]=0x0000000000404700;
-    vuln.bp_addresses[78]=0x0000000000404280;
-    vuln.bp_addresses[79]=0x0000000000404680;
-    vuln.bp_addresses[80]=0x00000000004046d0;
-    vuln.bp_addresses[81]=0x00000000004032a0;
-    vuln.bp_addresses[82]=0x0000000000400b80;
-    vuln.bp_addresses[83]=0x0000000000403140;
-    vuln.bp_addresses[84]=0x0000000000407ff0;
-    vuln.bp_addresses[85]=0x00000000004064e0;
-    vuln.bp_addresses[86]=0x000000000040d900;
-    vuln.bp_addresses[87]=0x0000000000403110;
-    vuln.bp_addresses[88]=0x0000000000408160;
-    vuln.bp_addresses[89]=0x0000000000404710;
-    vuln.bp_addresses[90]=0x0000000000402f00;
-    vuln.bp_addresses[91]=0x000000000040d770;
-    vuln.bp_addresses[92]=0x0000000000402f30;
-    vuln.bp_addresses[93]=0x0000000000402ed0;
-    vuln.bp_addresses[94]=0x0000000000402ec0;
-    vuln.bp_addresses[95]=0x0000000000410a70;
-    vuln.bp_addresses[96]=0x0000000000410030;
-    vuln.bp_addresses[97]=0x00000000004104e0;
-    vuln.bp_addresses[98]=0x00000000004100d0;
-    vuln.bp_addresses[99]=0x00000000004101d0;
-    vuln.bp_addresses[100]=0x0000000000410300;
-    vuln.bp_addresses[101]=0x00000000004103b0;
-    vuln.bp_addresses[102]=0x000000000040fdc0;
-    vuln.bp_addresses[103]=0x000000000040fd80;
-    vuln.bp_addresses[104]=0x000000000040fd90;
-    vuln.bp_addresses[105]=0x0000000000402fa0;
-    vuln.bp_addresses[106]=0x000000000040fda0;
-    vuln.bp_addresses[107]=0x000000000040fdb0;
-    vuln.bp_addresses[108]=0x000000000040fd70;
-    vuln.bp_addresses[109]=0x000000000040fcd0;
-    vuln.bp_addresses[110]=0x000000000040fef0;
-    vuln.bp_addresses[111]=0x0000000000403000;
-    vuln.bp_addresses[112]=0x000000000040fe30;
-    vuln.bp_addresses[113]=0x0000000000402fb0;
-    vuln.bp_addresses[114]=0x0000000000402f80;
-    vuln.bp_addresses[115]=0x0000000000402f50;
-    vuln.bp_addresses[116]=0x000000000040d8a0;
-    vuln.bp_addresses[117]=0x0000000000411230;
-    vuln.bp_addresses[118]=0x0000000000402ee0;
-    vuln.bp_addresses[119]=0x0000000000411f70;
-    vuln.bp_addresses[120]=0x0000000000412010;
-    vuln.bp_addresses[121]=0x0000000000412090;
-    vuln.bp_addresses[122]=0x00000000004110b0;
-    vuln.bp_addresses[123]=0x0000000000411ed0;
+vuln.bp_addresses[1]=0x000000000040d780;
+vuln.bp_addresses[2]=0x000000000040fb50;
+vuln.bp_addresses[3]=0x000000000040fb10;
+vuln.bp_addresses[4]=0x000000000040e510;
+vuln.bp_addresses[5]=0x000000000040f6f0;
+vuln.bp_addresses[6]=0x000000000040f6e0;
+vuln.bp_addresses[7]=0x000000000040f700;
+vuln.bp_addresses[8]=0x000000000040f380;
+vuln.bp_addresses[9]=0x000000000040f270;
+vuln.bp_addresses[10]=0x000000000040f320;
+vuln.bp_addresses[11]=0x000000000040f660;
+vuln.bp_addresses[12]=0x000000000040f470;
+vuln.bp_addresses[13]=0x000000000040efa0;
+vuln.bp_addresses[14]=0x000000000040f260;
+vuln.bp_addresses[15]=0x000000000040f070;
+vuln.bp_addresses[16]=0x000000000040efc0;
+vuln.bp_addresses[17]=0x000000000040f000;
+vuln.bp_addresses[18]=0x000000000040ef50;
+vuln.bp_addresses[19]=0x000000000040f640;
+vuln.bp_addresses[20]=0x000000000040f750;
+vuln.bp_addresses[21]=0x000000000040f710;
+vuln.bp_addresses[22]=0x000000000040f880;
+vuln.bp_addresses[23]=0x000000000040f840;
+vuln.bp_addresses[24]=0x000000000040f9d0;
+vuln.bp_addresses[25]=0x000000000040f8d0;
+vuln.bp_addresses[26]=0x000000000040f850;
+vuln.bp_addresses[27]=0x000000000040f970;
+vuln.bp_addresses[28]=0x000000000040f7d0;
+vuln.bp_addresses[29]=0x000000000040f770;
+vuln.bp_addresses[30]=0x000000000040fa70;
+vuln.bp_addresses[31]=0x000000000040f630;
+vuln.bp_addresses[32]=0x000000000040f250;
+vuln.bp_addresses[33]=0x000000000040efb0;
+vuln.bp_addresses[34]=0x000000000040f6c0;
+vuln.bp_addresses[35]=0x000000000040f6a0;
+vuln.bp_addresses[36]=0x000000000040f6d0;
+vuln.bp_addresses[37]=0x000000000040f680;
+vuln.bp_addresses[38]=0x000000000040f690;
+vuln.bp_addresses[39]=0x000000000040f0e0;
+vuln.bp_addresses[40]=0x000000000040f090;
+vuln.bp_addresses[41]=0x000000000040f1f0;
+vuln.bp_addresses[42]=0x000000000040f130;
+vuln.bp_addresses[43]=0x000000000040f180;
+vuln.bp_addresses[44]=0x00000000004116f0;
+vuln.bp_addresses[45]=0x0000000000411410;
+vuln.bp_addresses[46]=0x00000000004118c0;
+vuln.bp_addresses[47]=0x00000000004113a0;
+vuln.bp_addresses[48]=0x00000000004115c0;
+vuln.bp_addresses[49]=0x00000000004114b0;
+vuln.bp_addresses[50]=0x0000000000411460;
+vuln.bp_addresses[51]=0x000000000040f9e0;
+vuln.bp_addresses[52]=0x000000000040da90;
+vuln.bp_addresses[53]=0x0000000000410690;
+vuln.bp_addresses[54]=0x00000000004106c0;
+vuln.bp_addresses[55]=0x00000000004030a0;
+vuln.bp_addresses[56]=0x000000000040d870;
+vuln.bp_addresses[57]=0x000000000040d7d0;
+vuln.bp_addresses[58]=0x000000000040d760;
+vuln.bp_addresses[59]=0x0000000000402f20;
+vuln.bp_addresses[60]=0x000000000040da40;
+vuln.bp_addresses[61]=0x000000000040ef60;
+vuln.bp_addresses[62]=0x000000000040dbb0;
+vuln.bp_addresses[63]=0x000000000040db40;
+vuln.bp_addresses[64]=0x000000000040dad0;
+vuln.bp_addresses[65]=0x0000000000403060;
+vuln.bp_addresses[66]=0x00000000004031f0;
+vuln.bp_addresses[67]=0x0000000000403160;
+vuln.bp_addresses[68]=0x000000000040ee90;
+vuln.bp_addresses[69]=0x000000000040ee30;
+vuln.bp_addresses[70]=0x0000000000404660;
+vuln.bp_addresses[71]=0x00000000004032e0;
+vuln.bp_addresses[72]=0x00000000004041b0;
+vuln.bp_addresses[73]=0x0000000000404210;
+vuln.bp_addresses[74]=0x0000000000404240;
+vuln.bp_addresses[75]=0x0000000000404270;
+vuln.bp_addresses[76]=0x0000000000404180;
+vuln.bp_addresses[77]=0x0000000000404700;
+vuln.bp_addresses[78]=0x0000000000404280;
+vuln.bp_addresses[79]=0x0000000000404680;
+vuln.bp_addresses[80]=0x00000000004046d0;
+vuln.bp_addresses[81]=0x00000000004032a0;
+vuln.bp_addresses[82]=0x0000000000400b80;
+vuln.bp_addresses[83]=0x0000000000403140;
+vuln.bp_addresses[84]=0x0000000000407ff0;
+vuln.bp_addresses[85]=0x00000000004064e0;
+vuln.bp_addresses[86]=0x000000000040d900;
+vuln.bp_addresses[87]=0x0000000000403110;
+vuln.bp_addresses[88]=0x0000000000408160;
+vuln.bp_addresses[89]=0x0000000000404710;
+vuln.bp_addresses[90]=0x0000000000402f00;
+vuln.bp_addresses[91]=0x000000000040d770;
+vuln.bp_addresses[92]=0x0000000000402f30;
+vuln.bp_addresses[93]=0x0000000000402ed0;
+vuln.bp_addresses[94]=0x0000000000402ec0;
+vuln.bp_addresses[95]=0x0000000000410a70;
+vuln.bp_addresses[96]=0x0000000000410030;
+vuln.bp_addresses[97]=0x00000000004104e0;
+vuln.bp_addresses[98]=0x00000000004100d0;
+vuln.bp_addresses[99]=0x00000000004101d0;
+vuln.bp_addresses[100]=0x0000000000410300;
+vuln.bp_addresses[101]=0x00000000004103b0;
+vuln.bp_addresses[102]=0x000000000040fdc0;
+vuln.bp_addresses[103]=0x000000000040fd80;
+vuln.bp_addresses[104]=0x000000000040fd90;
+vuln.bp_addresses[105]=0x0000000000402fa0;
+vuln.bp_addresses[106]=0x000000000040fda0;
+vuln.bp_addresses[107]=0x000000000040fdb0;
+vuln.bp_addresses[108]=0x000000000040fd70;
+vuln.bp_addresses[109]=0x000000000040fcd0;
+vuln.bp_addresses[110]=0x000000000040fef0;
+vuln.bp_addresses[111]=0x0000000000403000;
+vuln.bp_addresses[112]=0x000000000040fe30;
+vuln.bp_addresses[113]=0x0000000000402fb0;
+vuln.bp_addresses[114]=0x0000000000402f80;
+vuln.bp_addresses[115]=0x0000000000402f50;
+vuln.bp_addresses[116]=0x000000000040d8a0;
+vuln.bp_addresses[117]=0x0000000000411230;
+vuln.bp_addresses[118]=0x0000000000402ee0;
+vuln.bp_addresses[119]=0x0000000000411f70;
+vuln.bp_addresses[120]=0x0000000000412010;
+vuln.bp_addresses[121]=0x0000000000412090;
+vuln.bp_addresses[122]=0x00000000004110b0;
     for (int i = 0; i < vuln.bp_count; i++) {
         vuln.bp_original_values[i] = get_value(child_pid, vuln.bp_addresses[i]);
     }
@@ -210,7 +221,7 @@ void restore_dynamic_breakpoint(pid_t child_pid, long long unsigned bp_addr) {
 void add_to_corpus(unsigned char *new_input) {
 
     corpus_count++;
-    corpus[corpus_count - 1] = new_input;
+    strcpy(dataptr->data[corpus_count-1],new_input);
 
 }
 
@@ -233,10 +244,10 @@ unsigned char* get_fuzzcase() {
         memcpy(input_mutated, input_prototype, prototype_count);
 
         // mutate 159 bytes, while keeping the prototype intact
-        for (int i = 0; i < (int)(prototype_count); i++) {
+        for (int i = 0; i < 1; i++) {
             input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
         }
-        memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+        //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
 
         return input_mutated;
     }
@@ -253,10 +264,10 @@ unsigned char* get_fuzzcase() {
             memcpy(input_mutated, input_prototype, prototype_count);
 
             // mutate 159 bytes, while keeping the prototype intact
-            for (int i = 0; i < (int)(prototype_count); i++) {
+            for (int i = 0; i < 1; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
-             memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+            //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
 
 
             return input_mutated;
@@ -264,12 +275,12 @@ unsigned char* get_fuzzcase() {
         // here we'll pick a random input from the corpus 
         else {
             int corpus_pick = rand() % corpus_count;
-            memcpy(input_mutated, corpus[corpus_pick], prototype_count);
+            memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
 
-            for (int i = 0; i < (int)(prototype_count); i++) {
+            for (int i = 0; i < 1; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
-             memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+            //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
 
 
             return input_mutated;
@@ -325,7 +336,7 @@ void print_stats(int result, int crashes, float million_iterations) {
     fflush(stdout);
 }
 
-void fuzzer(pid_t child_pid, unsigned char* snapshot_buf,  long  maps_offset[], long snapshot_buf_offset[], long rdwr_len[], struct user_regs_struct snapshot_registers, struct user_fpregs_struct snapshot_fp_registers) {
+void fuzzer(pid_t child_pid, unsigned char* snapshot_buf,  long  maps_offset[], long snapshot_buf_offset[], long rdwr_len[], int count, struct user_regs_struct snapshot_registers, struct user_fpregs_struct snapshot_fp_registers) {
 
     // fc/s
     int iterations = 0;
@@ -377,7 +388,7 @@ void fuzzer(pid_t child_pid, unsigned char* snapshot_buf,  long  maps_offset[], 
         }
 
         // restore writable memory from /proc/$pid/maps to its state at Start
-        restore_snapshot(snapshot_buf, child_pid, maps_offset, snapshot_buf_offset, rdwr_len);
+        restore_snapshot(snapshot_buf, child_pid, maps_offset, snapshot_buf_offset, rdwr_len, count);
 
         // restore registers to their state at Start
         set_regs(child_pid, snapshot_registers);
@@ -403,7 +414,7 @@ void sig_handler(int s) {
 
 void scan_input() {
 
-    strcpy(input_prototype,"");
+    memcpy(input_prototype,"\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1",12);
 }
 
 void execute_debugee(char* debugee) {
@@ -425,12 +436,10 @@ void execute_debugee(char* debugee) {
     }
 
     // dup both stdout and stderr and send them to /dev/null
-    /*
     int fd = open("/dev/null", O_WRONLY);
     dup2(fd, 1);
     dup2(fd, 2);
     close(fd);
-   */
     // exec our debugee program, NULL terminated to avoid Sentinel compilation
     // warning. this replaces the fork() clone of the parent with the 
     // debugee process 
@@ -532,7 +541,7 @@ void execute_debugger(pid_t child_pid) {
     pmparser_free(maps);
     
    
-    unsigned char* snapshot_buf = create_snapshot(child_pid, maps_offset, snapshot_buf_offset, rdwr_len);
+    unsigned char* snapshot_buf = create_snapshot(child_pid, maps_offset, snapshot_buf_offset, rdwr_len, i);
 
     // take a snapshot of the registers in this state
     struct user_regs_struct snapshot_registers = get_regs(child_pid, snapshot_registers);
@@ -545,16 +554,41 @@ void execute_debugger(pid_t child_pid) {
     getchar();
 
     // system("clear");
-    fuzzer(child_pid, snapshot_buf, maps_offset, snapshot_buf_offset, rdwr_len, snapshot_registers, snapshot_fp_registers);
+    fuzzer(child_pid, snapshot_buf, maps_offset, snapshot_buf_offset, rdwr_len, i, snapshot_registers, snapshot_fp_registers);
 }
 
 int main(int argc, char* argv[]) {
 
+    int size = sizeof(struct memory) - 1;  
+    int shm_id;
+    key_t shmKey;
+
+    shmKey = ftok(".",1234);
+    
+
+    shm_id  = shmget(shmKey, size, 0666 | IPC_CREAT);   /* I adjusted the size parameter here */
+    
+    if(shm_id < 0)
+    {
+      perror("shm_id didn't create\n");
+      exit(0);
+    }
+
+    dataptr = (struct memory *)shmat(shm_id,NULL,0);
+    if((long) dataptr == -1)
+    {
+      perror("****didn't attatch to share memory\n");
+    }
+
+    printf("share memory attatched at %p address\n",dataptr);
+
+
+
     // setting up a signal handler so we can exit gracefully from our
     // continuous fuzzing loop that is a while true
 
-    long long loc = strtoll(argv[1],NULL,0);
-    fuzz_location = (void*)loc+16; // in my case needed to shift due to vars 
+    //long long loc = strtoll(argv[1],NULL,0);
+   // fuzz_location = (void*)loc+16; // in my case needed to shift due to vars 
     printf("fuzz_location:%p\n",fuzz_location);
 
     struct sigaction sig_int_handler;
@@ -581,7 +615,8 @@ int main(int argc, char* argv[]) {
         //we're the parent process here
         execute_debugger(child_pid);
     }
-
+    
+    munmap(dataptr, size );
     return 0;    
 }
 

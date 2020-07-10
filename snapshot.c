@@ -8,19 +8,19 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 
-unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapshot_buf_offset[], long rdwr_len[]) {
+unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapshot_buf_offset[], long rdwr_len[], int count) {
  
     struct SNAPSHOT_MEMORY read_memory;
 
-    memcpy(read_memory.maps_offset,maps_offset,8*sizeof(long));
-    memcpy(read_memory.snapshot_buf_offset,snapshot_buf_offset,8*sizeof(long));
-    memcpy(read_memory.rdwr_length,rdwr_len,8*sizeof(long));
+    memcpy(read_memory.maps_offset,maps_offset,count*sizeof(long));
+    memcpy(read_memory.snapshot_buf_offset,snapshot_buf_offset,count*sizeof(long));
+    memcpy(read_memory.rdwr_length,rdwr_len,count*sizeof(long));
 
 
-    printf("%lx %lx %lx",read_memory.maps_offset[4],read_memory.snapshot_buf_offset[4],read_memory.rdwr_length[4]);
  
-    unsigned char* snapshot_buf = (unsigned char*)malloc(0xff000);
+    unsigned char* snapshot_buf = (unsigned char*)malloc(0xffff0);
  
     // this is just /proc/$pid/mem
     char proc_mem[0x20] = { 0 };
@@ -40,7 +40,7 @@ unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapsho
     //  -- read x-pages of memory from that offset into the snapshot buffer
     //  -- adjust the snapshot buffer offset so nothing is overwritten in it
     int lseek_result, bytes_read;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < count; i++) {
         printf("dragonfly> Reading from offset: %d\n", i+1);
         lseek_result = lseek(mem_fd, read_memory.maps_offset[i], SEEK_SET);
         if (lseek_result == -1) {
@@ -63,24 +63,24 @@ unsigned char* create_snapshot(pid_t child_pid, long maps_offset[], long snapsho
     return snapshot_buf;
 }
 
-void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_offset[], long snapshot_buf_offset[],long rdwr_len[]) {
+void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_offset[], long snapshot_buf_offset[],long rdwr_len[], int count) {
  
     ssize_t bytes_written = 0;
     // we're writing *from* 7 different offsets within snapshot_buf
-    struct iovec local[8];
+    struct iovec local[count];
     // we're writing *to* 7 separate sections of writable memory here
-    struct iovec remote[8];
+    struct iovec remote[count];
  
     // this struct is the local buffer we want to write from into the 
     // struct that is 'remote' (ie, the child process where we'll overwrite
     // all of the non-heap writable memory sections that we parsed from 
     // proc/$pid/memory)
     
-    for(int i=0;i<8;i++)
+    for(int i=0;i<count;i++)
     { 
       if(i==0)
       {
-        local[i].iov_base = maps_offset[i];
+        local[i].iov_base = (unsigned char*) maps_offset[i];
         local[i].iov_len = rdwr_len[i];
       }
       local[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
@@ -89,11 +89,11 @@ void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_of
 
     // just hardcoding the base addresses that are writable memory
     // that we gleaned from /proc/pid/maps and their lengths
-    for(int i=0;i<8;i++)
+    for(int i=0;i<count;i++)
     {
       if(i==0)
       {
-        remote[i].iov_base = maps_offset[i];
+        remote[i].iov_base = (unsigned char*)maps_offset[i];
         remote[i].iov_len = rdwr_len[i];
       }
       remote[i].iov_base = (unsigned char*)(maps_offset[i] + snapshot_buf_offset[i]);
@@ -101,6 +101,6 @@ void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_of
     }
    
  
-    bytes_written = process_vm_writev(child_pid, local, 8, remote, 8, 0);
+    bytes_written = process_vm_writev(child_pid, local, count, remote, count, 0);
     //printf("dragonfly> %ld bytes written\n", bytes_written);
 }
