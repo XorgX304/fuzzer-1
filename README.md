@@ -8,7 +8,7 @@ Ptrace fuzzer experiments based on https://h0mbre.github.io/Fuzzing-Like-A-Cavem
 
 
 TODO:
-- automatic snapshot collection from /proc/maps
+- automatic snapshot collection from /proc/maps - DONE
 - shared memory for Corpus
 - Mutators
 
