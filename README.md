@@ -45,7 +45,7 @@ Hopefully, rest you can figure out.
 After moving Corpus to shared memory
 
 
-![Fuzzer](dragonfly-120k_sec.png)
+![Fuzzer](dragonfly-120_sec.png)
 
 ![Fuzzer](dragonfly-80k_sec.png)
 
