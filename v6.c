@@ -28,6 +28,9 @@ int main(int argc, char** argv) {
         (&reg,&inp,&inp+12,ONIG_OPTION_IGNORECASE , ONIG_ENCODING_UTF32_BE,
          ONIG_SYNTAX_DEFAULT, 0);
     onig_free(reg);
+     printf("myar ptr:%p\n",&inp);
+    printf("myar:%s\n",&inp);
+
 
     printf("end");
     return 0;
