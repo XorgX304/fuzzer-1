@@ -41,7 +41,7 @@
 #include "pmparser.h"
 
 // globals /////////////////////////////////////// 
-char* debugee = "v6";                           //
+char* debugee = "v10";                           //
 size_t prototype_count = 12;                    //
 unsigned char input_prototype[12];              //
 unsigned char input_mutated[12];                //
@@ -52,12 +52,13 @@ struct memory
     char data[100][12];
 };
 struct memory *dataptr;
+unsigned char *corpus[100];
 
 //////////////////////////////////////////////////
 
 // breakpoints ///////////////////////////////////
-long long unsigned start_addr =0x400ae4;        //
-long long unsigned end_addr = 0x400b7e;         // 
+long long unsigned start_addr =0x400afa;        //
+long long unsigned end_addr = 0x400b64;         // 
 //
 //////////////////////////////////////////////////
 
@@ -232,7 +233,8 @@ void restore_dynamic_breakpoint(pid_t child_pid, long long unsigned bp_addr) {
 void add_to_corpus(unsigned char *new_input) {
 
     corpus_count++;
-    strcpy(dataptr->data[corpus_count-1],new_input);
+    //strcpy(dataptr->data[corpus_count-1],new_input);
+    corpus[corpus_count - 1] = new_input;
 
 }
 
@@ -286,7 +288,8 @@ unsigned char* get_fuzzcase() {
         // here we'll pick a random input from the corpus 
         else {
             int corpus_pick = rand() % corpus_count;
-            memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
+            //memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
+            memcpy(input_mutated, corpus[corpus_pick], prototype_count);
 
             for (int i = 0; i < rand() % 4; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
@@ -528,21 +531,27 @@ void execute_debugger(pid_t child_pid) {
     procmaps_iterator* maps = pmparser_parse(child_pid);
     procmaps_struct* maps_tmp=NULL;
     int i=0; 
-    long maps_offset[8];
-    long snapshot_buf_offset[8];
-    long rdwr_len[8];
+    long maps_offset[255];
+    long snapshot_buf_offset[255];
+    long rdwr_len[255];
+    long offset[255];
     while( (maps_tmp = pmparser_next(maps)) != NULL){
         if(maps_tmp->is_r && maps_tmp->is_w)
         {
 
+
+            offset[i]=maps_tmp->length;
             maps_offset[i]=(long) maps_tmp->addr_start;
             if(i==0)
-                snapshot_buf_offset[i]=0;
+                snapshot_buf_offset[i]=0x0;
+            else if(i==1)
+                snapshot_buf_offset[i]=snapshot_buf_offset[i-1]+offset[i-1]-0x1;
             else
-                snapshot_buf_offset[i]=snapshot_buf_offset[i-1]+maps_tmp->length;
+                snapshot_buf_offset[i]=snapshot_buf_offset[i-1]+offset[i-1];
 
             rdwr_len[i]=maps_tmp->length;
             i=i+1;
+
 
 
         } 
