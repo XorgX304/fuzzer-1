@@ -41,7 +41,7 @@
 #include "pmparser.h"
 
 // globals /////////////////////////////////////// 
-char* debugee = "v10";                           //
+char* debugee = "v6";                           //
 size_t prototype_count = 12;                    //
 unsigned char input_prototype[12];              //
 unsigned char input_mutated[12];                //
@@ -57,8 +57,8 @@ unsigned char *corpus[100];
 //////////////////////////////////////////////////
 
 // breakpoints ///////////////////////////////////
-long long unsigned start_addr =0x400afa;        //
-long long unsigned end_addr = 0x400b64;         // 
+long long unsigned start_addr =0x400ae4;        //
+long long unsigned end_addr = 0x400b7e;         // 
 //
 //////////////////////////////////////////////////
 
