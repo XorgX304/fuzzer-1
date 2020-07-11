@@ -106,11 +106,6 @@ void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_of
         { 
             local[i].iov_base = (unsigned char*)(snapshot_buf);
             local[i].iov_len = rdwr_len[i];
-        }
-        else if(i==1)
-        {
-            local[i].iov_base = (unsigned char*)(snapshot_buf+snapshot_buf_offset[i]);
-            local[i].iov_len = rdwr_len[i];
         }else{
 
             local[i].iov_base = (unsigned char*)(snapshot_buf+snapshot_buf_offset[i]);
