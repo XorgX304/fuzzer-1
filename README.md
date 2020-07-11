@@ -42,10 +42,4 @@ Hopefully, rest you can figure out.
 
 ![Fuzzer](dragonfly-60k_sec.png)
 
-After moving Corpus to shared memory and modifying the mutator to mutate only one element vs 12.
-
-
-![Fuzzer](dragonfly-120_sec.png)
-
-![Fuzzer](dragonfly-80k_sec.png)
 
