@@ -4,6 +4,8 @@ Purpose:
 - closed, proprietary binary and also open source binary, library fuzzing
 - speed
 
+Code and approach is *EXPERIMENTAL*. YMMV
+
 Ptrace fuzzer experiments based on https://h0mbre.github.io/Fuzzing-Like-A-Caveman-4/#
 
 - Modified it to snapshot also Heap (needed for a more real target than dummy one)
