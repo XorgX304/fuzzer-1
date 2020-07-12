@@ -19,7 +19,7 @@ TODO:
 
 Fuzzing at ca. 60k exec/s. I can imagine you can scale it even more with 25% drop per total cores. With 4 cores I achieved 60k exec/s (25% total drop, since 1 core was ca 20k). Below you can also see how I trigger Stack Protector with my crash. #fuzzing #speed Fuzzing older "Oniguruma" regular expression library
 
-With shared memory corpus and increase of speed on one core to 50%, it could be even 120k exec per second (didn't try yet) on 4 cores. 
+With shared memory corpus and increase of speed on one core to 50%, it could be even 90k exec per second (didn't try yet) on 4 cores. 
 
 # Setup
 
