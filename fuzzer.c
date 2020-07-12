@@ -52,7 +52,6 @@ struct memory
     char data[100][12];
 };
 struct memory *dataptr;
-unsigned char *corpus[100];
 
 //////////////////////////////////////////////////
 
