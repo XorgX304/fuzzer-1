@@ -114,9 +114,6 @@ void restore_snapshot(unsigned char* snapshot_buf, pid_t child_pid, long maps_of
 
     }
 
-
-    // just hardcoding the base addresses that are writable memory
-    // that we gleaned from /proc/pid/maps and their lengths
     for(int i=0;i<count;i++)
     {
         remote[i].iov_base = (void *)(maps_offset[i]);
