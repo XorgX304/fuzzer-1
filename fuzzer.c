@@ -59,16 +59,16 @@ unsigned char *corpus[100];
 // breakpoints ///////////////////////////////////
 long long unsigned start_addr =0x400b40;        //
 long long unsigned end_addr = 0x400baa;         // 
-//
+                                                //
 //////////////////////////////////////////////////
 
 // dynamic breakpoints ///////////////////////////
 struct dynamic_breakpoints {                    //
-    //
+                                                //
     int bp_count;                               //
     long long unsigned bp_addresses[123];       //
     long long unsigned bp_original_values[123]; //
-    //
+                                                //
 };                                              //
 struct dynamic_breakpoints vuln;                //
 //////////////////////////////////////////////////
@@ -234,8 +234,7 @@ void restore_dynamic_breakpoint(pid_t child_pid, long long unsigned bp_addr) {
 void add_to_corpus(unsigned char *new_input) {
 
     corpus_count++;
-    //strcpy(dataptr->data[corpus_count-1],new_input);
-    corpus[corpus_count - 1] = new_input;
+    strcpy(dataptr->data[corpus_count-1],new_input);
 
 }
 
@@ -257,17 +256,17 @@ unsigned char* get_fuzzcase() {
     if (corpus_count == 0) {
         memcpy(input_mutated, input_prototype, prototype_count);
 
-        // mutate 159 bytes, while keeping the prototype intact
+        // mutate
         for (int i = 0; i < rand() % 4; i++) {
             input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
         }
-        //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+       
 
         return input_mutated;
     }
 
     // if we're here, that means our corpus has been added to
-    // by code coverage feedback and we're doing lookups in heap (slow)
+    // by code coverage feedback and we're doing lookups in shared memory
     else {
 
         // leave a possibility of still using prototype input 10% of the time
@@ -277,11 +276,11 @@ unsigned char* get_fuzzcase() {
         if (choice == 0) {
             memcpy(input_mutated, input_prototype, prototype_count);
 
-            // mutate 159 bytes, while keeping the prototype intact
+            // mutate
             for (int i = 0; i < rand() % 4; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
-            //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+           
 
 
             return input_mutated;
@@ -289,13 +288,12 @@ unsigned char* get_fuzzcase() {
         // here we'll pick a random input from the corpus 
         else {
             int corpus_pick = rand() % corpus_count;
-            //memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
-            memcpy(input_mutated, corpus[corpus_pick], prototype_count);
+            memcpy(input_mutated, dataptr->data[corpus_pick], prototype_count);
 
             for (int i = 0; i < rand() % 4; i++) {
                 input_mutated[rand() % prototype_count] = (unsigned char)(rand() % 256);
             }
-            //memcpy(input_mutated,"\x3f\xff\x63\x7f\xff\xff\xff\xff\x4d\x22\x00\x00",12);
+            
 
 
             return input_mutated;
@@ -610,7 +608,7 @@ int main(int argc, char* argv[]) {
     // continuous fuzzing loop that is a while true
 
     //long long loc = strtoll(argv[1],NULL,0);
-    // fuzz_location = (void*)loc+16; // in my case needed to shift due to vars 
+    //fuzz_location = (void*)loc+16; // in my case needed to shift due to vars 
     printf("fuzz_location:%p\n",fuzz_location);
 
     struct sigaction sig_int_handler;
