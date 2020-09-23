@@ -52,4 +52,83 @@ Hopefully, rest you can figure out.
 
 ![Fuzzer](dragonfly-60k_sec.png)
 
+# Additional notes/hints on usage/Troubleshooting
+
+Comment those lines out:
+
+```
+// dup both stdout and stderr and send them to /dev/null
+       int fd = open("/dev/null", O_WRONLY);
+       dup2(fd, 1);
+       dup2(fd, 2);
+       close(fd);
+```
+
+You will get the Test case buffer address on start, before hitting SPACE:
+
+```
+share memory attatched at 0x7ffff7ff7000 address
+fuzz_location:0x7fffffffe2d0
+
+dragonfly> debuggee pid: 12119
+dragonfly> setting 'start/end' breakpoints:
+
+   start-> 0x40185b
+   end  -> 0x401863
+
+Data ptr:0x7fffffffe2d0
+read size: 0, max_size: 12
+```
+
+Adjust your 
+
+```
+void* fuzz_location = (void*)0x7fffffffe2d0; 
+```
+
+The ADDRESS will be different when running in the SHELL and in DRAGONFLY. Use the second one!
+
+
+Adjust start and end, disassembling the binary (sample ./v7)
+
+```
+   0x000000000040185b <+137>:	mov    rdi,rax
+   0x000000000040185e <+140>:	call   0x4015c3 <LLVMFuzzerTestOneInput>
+   0x0000000000401863 <+145>:	mov    edi,0x42817f
+```
+
+here:
+```
+long long unsigned start_addr = 0x40185b;       
+long long unsigned end_addr = 0x401863;  
+```
+
+Breakpoints
+
+
+Use Ghidra or nm to dump them:
+```
+nm -g -C ./v3 | grep " T " | cut -f 1 -d " " > listX.txt
+```
+Then generate using this Python Script:
+
+```
+import sys
+f = open("listX.txt", "r")
+i=0
+for x in f:
+  x = x[:-1]
+  sys.stdout.write("vuln.bp_addresses["+str(i)+"]=0x"+x+";\n") 
+  sys.stdout.flush()
+  i=i+1
+```
+
+and put in fuzzer.c
+
+Fuzz.
+
+
+
+
+
 
