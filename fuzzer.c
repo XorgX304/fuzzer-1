@@ -41,11 +41,11 @@
 #include "pmparser.h"
 
 // globals /////////////////////////////////////// 
-char* debugee = "v6";                           //
+char* debugee = "v7";                           //
 size_t prototype_count = 12;                    //
 unsigned char input_prototype[12];              //
 unsigned char input_mutated[12];                //
-void* fuzz_location = (void*)0x7fffffffd9e0;    //
+void* fuzz_location = (void*)0x7fffffffe2d0;    //
 int corpus_count = 0;                           //
 struct memory
 {
@@ -56,8 +56,8 @@ struct memory *dataptr;
 //////////////////////////////////////////////////
 
 // breakpoints ///////////////////////////////////
-long long unsigned start_addr =0x400b40;        //
-long long unsigned end_addr = 0x400baa;         // 
+long long unsigned start_addr = 0x40185b;       //
+long long unsigned end_addr = 0x401863;         // 
                                                 //
 //////////////////////////////////////////////////
 
@@ -75,8 +75,8 @@ struct dynamic_breakpoints vuln;                //
 void set_dynamic_breakpoints(pid_t child_pid) {
 
     // these are the breakpoints that inform our code coverage
-    vuln.bp_count = 123;
-    vuln.bp_addresses[0]=0x000000000040da90;
+    vuln.bp_count = 1;
+    vuln.bp_addresses[0]=0x0000000000401833;
     vuln.bp_addresses[1]=0x000000000040d7b0;
     vuln.bp_addresses[2]=0x000000000040fb80;
     vuln.bp_addresses[3]=0x000000000040fb40;
@@ -448,10 +448,10 @@ void execute_debugee(char* debugee) {
     }
 
     // dup both stdout and stderr and send them to /dev/null
-       int fd = open("/dev/null", O_WRONLY);
-       dup2(fd, 1);
-       dup2(fd, 2);
-       close(fd);
+       //int fd = open("/dev/null", O_WRONLY);
+       //dup2(fd, 1);
+       //dup2(fd, 2);
+       //close(fd);
     // exec our debugee program, NULL terminated to avoid Sentinel compilation
     // warning. this replaces the fork() clone of the parent with the 
     // debugee process 
