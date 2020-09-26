@@ -528,7 +528,7 @@ int main(int argc, char** argv)
 {
   size_t max_size;
   size_t n;
-  uint8_t Data[12];
+  uint8_t Data[2096];
 
   if (argc > 1) {
     max_size = (size_t )atoi(argv[1]);
@@ -540,6 +540,7 @@ int main(int argc, char** argv)
   //n = read(0, Data, max_size);
   //fprintf(stdout, "read size: %ld, max_size: %ld\n", n, max_size);
   printf("Data ptr:%p\n",&Data);
+  n = 2096;
   fprintf(stdout, "read size: %ld, max_size: %ld\n", n, max_size);
 
   LLVMFuzzerTestOneInput(Data, n);
